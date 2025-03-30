@@ -5,17 +5,32 @@ const room = require("../models/room");
 console.log("roomdata", Room);
 const bookRoom = async (req, res) => {
   try {
-    console.log("inside try");
-    const { guestName, email, phone, checkInDate, checkOutDate } = req.body;
-    // Find an available room
-    const availableRoom = await Room.findOne({ status: "Available" });
-    console.log("Available Room:", availableRoom);
-    if (!availableRoom) {
-      return res
-        .status(400)
-        .json({ message: "No available rooms at the moment" });
+    console.log("Inside booking API");
+    const { guestName, email, phone, checkInDate, checkOutDate, numberOfGuests } = req.body;
+
+    if (!guestName || !email || !phone || !checkInDate || !checkOutDate || !numberOfGuests) {
+      return res.status(400).json({ message: "All fields are required, including number of guests." });
     }
 
+    let requiredType = "";
+    if (numberOfGuests === 1) requiredType = "Single";
+    else if (numberOfGuests === 2) requiredType = "Double";
+    else requiredType = "Suite"; // For 3+ guests
+
+    // Find the best-matching room type
+    let availableRoom = await Room.findOne({ type: requiredType, status: "Available" });
+
+    // If no exact match is found, upgrade to the next available room type
+    if (!availableRoom && requiredType === "Single") {
+      availableRoom = await Room.findOne({ type: "Double", status: "Available" }) ||
+                      await Room.findOne({ type: "Suite", status: "Available" });
+    } else if (!availableRoom && requiredType === "Double") {
+      availableRoom = await Room.findOne({ type: "Suite", status: "Available" });
+    }
+
+    if (!availableRoom) {
+      return res.status(400).json({ message: "No suitable rooms available at the moment" });
+    }
     // Create a new booking
     const newBooking = new Booking({
       guestName,
@@ -25,24 +40,25 @@ const bookRoom = async (req, res) => {
       checkOutDate,
       room: availableRoom._id,
       roomNumber: availableRoom.roomNumber,
-      type: availableRoom.type,
+      type:requiredType,
+      capacity:numberOfGuests,
       status: "Booked",
     });
 
     // Save booking and update room status
     await newBooking.save();
-    availableRoom.status = "Booked"; // Updating status instead of isAvailable
+    availableRoom.status = "Booked";
     await availableRoom.save();
 
-    return res
-      .status(201)
-      .json({ message: "Room booked successfully", booking: newBooking });
+    return res.status(201).json({
+      message: "Room booked successfully",
+      booking: newBooking,
+    });
   } catch (error) {
     console.error("Booking error:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
-
 const getBookingDetails = async (req, res) => {
   try {
     const { email } = req.params;
@@ -110,7 +126,7 @@ const cancelBooking = async (req, res) => {
 
 const updateBooking = async (req, res) => {
   try {
-    const { email, roomNumber, checkInDate, checkOutDate } = req.body;
+    const {name, email, roomNumber, checkInDate, checkOutDate } = req.body;
     if (!email || !roomNumber || !checkInDate || !checkOutDate) {
       return res
         .status(400)
