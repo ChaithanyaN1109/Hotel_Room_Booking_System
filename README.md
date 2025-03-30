@@ -51,8 +51,8 @@ This project is a **Hotel Room Booking System** built using **Node.js, Express, 
 ### Booking
 - `POST /api/booking/book` - Book a room
 - `GET /api/booking/:email` - Get user bookings
-- `DELETE /api/booking/cancel` - Cancel a booking
-- `PUT /api/booking/update` - Update booking details
+- `DELETE /api/booking/cancelBooking` - Cancel a booking
+- `PUT /api/booking/updateBooking` - Update booking details
 
 ### Admin
 - `GET /api/booking/getAllBookings` - Get all bookings (Admin only)
