@@ -1,8 +1,6 @@
 const Room = require("../models/room");
 const Booking = require("../models/bookingModel");
-const room = require("../models/room");
 
-console.log("roomdata", Room);
 const bookRoom = async (req, res) => {
   try {
     console.log("Inside booking API");
